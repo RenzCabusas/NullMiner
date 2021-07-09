@@ -1,6 +1,5 @@
 from csv import reader
 from collections import defaultdict
-from itertools import chain, combinations
 
 class Node:
     def __init__(self, itemName, frequency, parentNode):
