@@ -8,6 +8,8 @@ def fpgrowth(itemSetList, minSup):
         print('No frequent item set')
     else:
         freqItems = []
+        # TODO: Actually implement the uncommented part
+        
         # mineTree(headerTable, minSup, set(), freqItems)
 
         # for i in range(len(freqItems)):
