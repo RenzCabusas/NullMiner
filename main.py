@@ -5,4 +5,5 @@ itemSetList = [['{1,40s}', '{2,M}', '{3,MB}', '{4,ICU}', '{5,comm}'],
                ['{1,40s}', '{2,M}', '{3,ON}', '{4,ICU}', '{5,comm}']]
 
 freqItemSet = fpgrowth(itemSetList, minSup=3)
+
 print(freqItemSet)

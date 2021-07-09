@@ -62,7 +62,7 @@ def constructTree(itemSetList, frequency, minSup):
     if(len(headerTable) == 0):
         return None, None
 
-    # HeaderTable column [Item: [frequency, headNode]]
+    # HeaderTable column [Item: [frequency, headNode, setCount]]
     for item in headerTable:
         headerTable[item] = [headerTable[item], None, len(categorySetCounts[item[1:2]])]
 
