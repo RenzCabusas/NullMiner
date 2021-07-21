@@ -1,4 +1,5 @@
 from fpgrowth_py.utils import *
+import copy
 
 def fpgrowth(itemSetList, minSup):
     frequency = getFrequencyFromList(itemSetList)
@@ -10,7 +11,29 @@ def fpgrowth(itemSetList, minSup):
         freqItems = []
         # TODO: Actually implement the commented part
 
-        mineTree(headerTable, minSup, set(), freqItems)
+        # mineTree(headerTable, minSup, set(), freqItems)
+
+        nullTable = createNullTable(itemSetList)
+
+        for k, v in headerTable.items():
+            categoryNumber = k[1:2]
+            item = k[3:-1]
+            tempHeaderTable = copy.deepcopy(headerTable)
+            
+            if (nullTable[categoryNumber] and item != "NULL" and item == "ICU"):
+                pair = "{" + categoryNumber + "," + item + "}"
+                tempHeaderTable[pair][0] += nullTable[categoryNumber]
+                for key in list(tempHeaderTable.keys()):
+                    tempItem = key[3:-1]
+                    if (item == tempItem):
+                        newItem = item + "+NULL"
+                        newPair = "{" + categoryNumber + "," + newItem + "}"
+                        newNullPair = "{" + categoryNumber + ",NULL" + "}"
+                        tempHeaderTable[newPair] = tempHeaderTable[pair] 
+                        del tempHeaderTable[pair]
+                        del tempHeaderTable[newNullPair]
+                        break
+                # mineTree(tempHeaderTable, minSup, set(), freqItems)
 
         for i in range(len(freqItems)):
             freqItems[i] = str(freqItems[i]) + " : " + str(getSupport(freqItems[i], itemSetList)) 
