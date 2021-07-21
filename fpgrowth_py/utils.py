@@ -81,6 +81,18 @@ def constructTree(itemSetList, frequency, minSup):
     return fpTree, headerTable
 
 def updateHeaderTable(item, targetNode, headerTable):
+    itemName = item[3:-1]
+    categoryNumber = item[1:2]
+    if (itemName == "NULL"):
+        for i in headerTable:
+            iItemName = i[3:-1]
+            iCategoryNuber = i[1:2]
+            if (iItemName != "NULL" and categoryNumber == iCategoryNuber):
+                currentNode = headerTable[i][1]
+                while currentNode.next != None:
+                    currentNode = currentNode.next
+                currentNode.next = targetNode
+            
     if(headerTable[item][1] == None):
         headerTable[item][1] = targetNode
     else:
@@ -100,7 +112,7 @@ def updateTree(item, treeNode, headerTable, frequency):
         treeNode.children[item] = newItemNode
         # Link the new branch to header table
         updateHeaderTable(item, newItemNode, headerTable)
-
+        
     return treeNode.children[item]
 
 def ascendFPtree(node, prefixPath):
