@@ -196,7 +196,31 @@ def mineTree(headerTable, minSup, preFix, freqItemList):
     
 def mineNullTree(headerTable, minSup, preFix, freqItemList, itemSetList):
     nullTable = createNullTable(itemSetList)
-    
+    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True)]
+    for item in sortedItemList:
+        categoryNumber = item[1:2]
+        itemName = item[3:-1]
+        if (not nullTable[categoryNumber] or itemName == "NULL"):
+            continue
+        newFreqSet = preFix.copy()
+        newFreqSet.add(item)
+        freqItemList.append(str(newFreqSet))
+        conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
+        nullItem = "{" + categoryNumber + ",NULL}"
+        nullConditionalPattBase, nullFrequency = findPrefixPath(nullItem, headerTable) 
+        mergedConditionalPattBase = conditionalPattBase + nullConditionalPattBase
+        mergedFrequency = frequency + nullFrequency
+        conditionalTree, newHeaderTable = constructTree(mergedConditionalPattBase, mergedFrequency, minSup) 
+
+        if newHeaderTable != None:
+            # Mining recursively on the tree
+            mineTree(newHeaderTable, minSup,
+                       newFreqSet, freqItemList)
+
+
+            
+        
+
     
 def getSupport(testSet, itemSetList):
     count = 0
