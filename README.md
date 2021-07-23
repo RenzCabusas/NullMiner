@@ -7,4 +7,4 @@
 
 #### Current problems: 
 - Support for items in freqItemSet are finicky
-- Some infrequent item sets are included in freqItemSet (e.g., {4, ICU}: 2)
+- Some frequent item sets are included (particularly anything that has ({....,ICU+NULL,comm+NULL})
