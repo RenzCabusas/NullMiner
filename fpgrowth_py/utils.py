@@ -85,26 +85,9 @@ def constructTree(itemSetList, frequency, minSup):
         for item in itemSet:
             currentNode = updateTree(item, currentNode, headerTable, frequency[idx])
 
-    # node = headerTable["{4,ICU}"][1]
-    # while node != None:
-    #     print(node.itemName)
-    #     node = node.next
     return fpTree, headerTable
                 
-def updateHeaderTable(item, targetNode, headerTable):
-    # itemName = item[3:-1]
-    # categoryNumber = item[1:2]
-    # if (itemName == "NULL"):
-    #     for i in headerTable:
-    #         iItemName = i[3:-1]
-    #         iCategoryNumber = i[1:2]
-    #         if (iItemName != "NULL" and categoryNumber == iCategoryNumber):
-    #             currentNode = headerTable[i][1]
-    #             print(i)
-    #             while currentNode.next != None:
-    #                 currentNode = currentNode.next
-    #             currentNode.next = targetNode
-            
+def updateHeaderTable(item, targetNode, headerTable):     
     if(headerTable[item][1] == None):
         headerTable[item][1] = targetNode
     else:
@@ -115,27 +98,6 @@ def updateHeaderTable(item, targetNode, headerTable):
         currentNode.next = targetNode
 
 def updateTree(item, treeNode, headerTable, frequency):
-        # ['{1,40s}', '{2,M}', '{3,MB}', '{5,comm}', '{4,ICU}']
-        # NEW BRANCH{1,40s}
-        # NEW BRANCH{2,M}
-        # NEW BRANCH{3,MB}
-        # NEW BRANCH{5,comm}
-        # NEW BRANCH{4,ICU}
-        # ['{1,40s}', '{3,MB}', '{5,comm}']
-        # EXISTS{1,40s}
-        # NEW BRANCH{3,MB}
-        # NEW BRANCH{5,comm}
-        # ['{1,40s}', '{2,M}', '{3,MB}', '{5,NULL}', '{4,NULL}']
-        # EXISTS{1,40s}
-        # EXISTS{2,M}
-        # EXISTS{3,MB}
-        # NEW BRANCH{5,NULL}
-        # NEW BRANCH{4,NULL}
-        # ['{1,40s}', '{2,M}', '{5,comm}', '{4,ICU}']
-        # EXISTS{1,40s}
-        # EXISTS{2,M}
-        # NEW BRANCH{5,comm}
-        # NEW BRANCH{4,ICU}
     if item in treeNode.children:
         # If the item already exists, increment the count
         treeNode.children[item].increment(frequency)
@@ -185,8 +147,7 @@ def mineTree(headerTable, minSup, preFix, freqItemList):
         freqItemList.append(newFreqSet)
         # Find all prefix path, constrcut conditional pattern base
         conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
-        # print(item)
-        # print(conditionalPattBase)
+
         # Construct conditonal FP Tree with conditional pattern base
         conditionalTree, newHeaderTable = constructTree(conditionalPattBase, frequency, minSup) 
         if newHeaderTable != None:
