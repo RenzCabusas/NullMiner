@@ -185,23 +185,20 @@ def mineNullTree(headerTable, minSup, preFix, freqItemList, itemSetList):
 
     # Start with the lowest frequency
     for item in sortedItemList:
-        if not nullTable[item[1:2]] or item[3:-1] == "NULL":
-            continue  
+        # if not nullTable[item[1:2]] or item[3:-1] == "NULL":
+        #     continue  
         
         # Pattern growth is achieved by the concatenation of suffix pattern with frequent patterns generated from conditional FP-tree
         newFreqSet = preFix.copy()
         newFreqSet.add(item)
-        freqItemList.append(newFreqSet)
+        freqItemList.append(str(newFreqSet))
         # Find all prefix path, constrcut conditional pattern base
         conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
-
         conditionalTree, newHeaderTable = constructTree(conditionalPattBase, frequency, minSup) 
         if newHeaderTable != None:
-            conditionalTree.display()
-
             # Mining recursively on the tree
-            mineNullTree(newHeaderTable, minSup,
-                       newFreqSet, freqItemList, itemSetList)
+            mineTree(newHeaderTable, minSup,
+                       newFreqSet, freqItemList)
 
         
 def getSupport(testSet, itemSetList):

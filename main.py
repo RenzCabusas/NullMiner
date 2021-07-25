@@ -8,3 +8,5 @@ freqItemSet = fpgrowth(itemSetList, minSup=3)
 
 for item in freqItemSet:
     print(str(item) + "\n")
+    
+print(len(freqItemSet))
