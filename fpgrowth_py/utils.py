@@ -128,9 +128,12 @@ def findPrefixPath(basePat, headerTable):
 
 def mineTree(headerTable, minSup, preFix, freqItemList):
     # Sort the items with frequency and create a list
-    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][0])] 
+    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True)] 
+
     # Start with the lowest frequency
-    for item in sortedItemList:  
+    for item in sortedItemList:
+        if (headerTable[item][0] < minSup or item[3:-1] == "NULL"):
+            continue  
         # Pattern growth is achieved by the concatenation of suffix pattern with frequent patterns generated from conditional FP-tree
         newFreqSet = preFix.copy()
         newFreqSet.add(item)
