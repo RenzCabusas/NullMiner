@@ -11,9 +11,10 @@ def fpgrowth(itemSetList, minSup):
         # TODO: Actually implement the commented part
 
         mineTree(headerTable, minSup, set(), freqItems)
+        addNullNodes(headerTable, itemSetList)
         mineNullTree(headerTable, minSup, set(), freqItems, itemSetList)
 
         for i in range(len(freqItems)):
-            freqItems[i] = str(freqItems[i]) + " : " + str(getSupport(freqItems[i], itemSetList)) 
+            freqItems[i] = str(freqItems[i]) + " : " + str(getSupport(freqItems[i], itemSetList))
 
         return freqItems
