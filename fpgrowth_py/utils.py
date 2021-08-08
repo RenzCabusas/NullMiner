@@ -30,11 +30,13 @@ class Node:
             count += child.numNodesHelper()
         return count
 
+# Return the category value for the item. Item in format of "{category,item}""
 def getCategoryNumber(item):
-    return item[1:2]
+    return item.split(',')[0][1:]
 
+# Return the name value for the item. Item in format of "{category,item}"
 def getItemName(item):
-    return item[3:-1]
+    return item.split(',')[1][:-1]
 
 def getFrequencyFromList(itemSetList):
     frequency = [1 for i in range(len(itemSetList))]
