@@ -6,7 +6,7 @@ NULL_VALUE = '99'
 # Set to the input file
 INPUT_FILE = './Datasets/covid19-truncated.csv'
 # Set to desired minimum support (if percentage, set SUPPORT_PERCENTAGE = True)
-SUPPORT = 60
+SUPPORT = 20
 SUPPORT_PERCENTAGE = True
 
 itemSetList = [['{1,40s}', '{2,M}', '{3,MB}', '{44,ICU}', '{5,comm}'],
