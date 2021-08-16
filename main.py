@@ -2,7 +2,7 @@ import csv
 from fpgrowth_py import fpgrowth
 
 # Set to the NULL value present in the input file (example: '99')
-NULL_VALUE = '99'
+NULL_VALUE = 'x'
 # Set to the input file
 INPUT_FILE = './Datasets/covid19-truncated.csv'
 # Set to desired minimum support (if percentage, set SUPPORT_PERCENTAGE = True)

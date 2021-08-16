@@ -123,11 +123,7 @@ def constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded):
 
     # Deleting items below minSup
     nullTable = generateNullTable(itemSetList)
-    
-    # If no null entries found, set flag to false
-    if len(nullTable) == 0:
-        isNullEntriesIncluded = False
-        
+
     headerTable = dict((item, sup) for item, sup in headerTable.items() if (nullTable[getCategoryNumber(item)] + sup) >= minSup or isNullEntriesIncluded and getItemName(item) == "NULL")
 
     if(len(headerTable) == 0):
