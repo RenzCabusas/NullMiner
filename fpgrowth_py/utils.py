@@ -109,8 +109,8 @@ def cleanAndSortItemSet(itemSet, headerTable, nullTable, isNullEntriesIncluded):
         itemNameWithNull = addNullToItemName(item)
         if itemNameWithNull in headerTable:
             newItemSet.append(itemNameWithNull)
-            
-    if isNullEntriesIncluded:
+
+    if isNullEntriesIncluded and len(nullTable) != 0:
         newItemSet.sort(key=lambda item: nullTable[getCategoryNumber(item)], reverse=False)
     else:
         newItemSet.sort(key=lambda item: headerTable[item][0], reverse=True)
@@ -123,7 +123,12 @@ def constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded):
 
     # Deleting items below minSup
     nullTable = generateNullTable(itemSetList)
-    headerTable = dict((item, sup) for item, sup in headerTable.items() if nullTable[getCategoryNumber(item)] + sup >= minSup or isNullEntriesIncluded and getItemName(item) == "NULL")
+    
+    # If no null entries found, set flag to false
+    if len(nullTable) == 0:
+        isNullEntriesIncluded = False
+        
+    headerTable = dict((item, sup) for item, sup in headerTable.items() if (nullTable[getCategoryNumber(item)] + sup) >= minSup or isNullEntriesIncluded and getItemName(item) == "NULL")
 
     if(len(headerTable) == 0):
         return None, None
@@ -131,7 +136,7 @@ def constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded):
     # headerTable: {categoryNumber, itemName}: [frequency, headNode, setCount]
     for item in headerTable:
         headerTable[item] = [headerTable[item], None, nullTable[getCategoryNumber(item)]]
-    
+
     # Init Null head node
     fpTree = Node('Null', 1, None)
 
