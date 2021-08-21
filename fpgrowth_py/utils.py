@@ -68,9 +68,6 @@ def generateTables(itemSetList, frequency, minSup, isNullEntriesIncluded):
         for item in itemSet:
             # get frequencies for each item in itemset
             headerTable[item] += frequency[idx]
-            
-            # count number of unique items for each category
-            categoryNumber = getCategoryNumber(item)
     
     if isNullEntriesIncluded:
         nullTable = generateNullTable(itemSetList)
@@ -90,7 +87,14 @@ def generateTables(itemSetList, frequency, minSup, isNullEntriesIncluded):
         headerTable = headerTable | nullEntriesToAdd
     return headerTable
 
-def cleanAndSortItemSet(itemSet, headerTable, nullTable, isNullEntriesIncluded):
+def generateCategoryCountTable(headerTable):
+    categoryCountTable = defaultdict(int)
+    for item in headerTable:
+        categoryCountTable[getCategoryNumber(item)] += headerTable[item][0]
+    
+    return categoryCountTable
+
+def cleanAndSortItemSet(itemSet, headerTable, categoryCountTable, nullTable, isNullEntriesIncluded):
     newItemSet = []
     
     for item in itemSet:        
@@ -98,7 +102,7 @@ def cleanAndSortItemSet(itemSet, headerTable, nullTable, isNullEntriesIncluded):
             newItemSet.append(item)
 
     if isNullEntriesIncluded and getCategoryNumber(item) in nullTable:
-        newItemSet.sort(key=lambda item: nullTable[getCategoryNumber(item)], reverse=False)
+        newItemSet.sort(key=lambda item: (nullTable[getCategoryNumber(item)], -categoryCountTable[getCategoryNumber(item)]), reverse=False)
     else:
         newItemSet.sort(key=lambda item: headerTable[item][0], reverse=True)
 
@@ -110,9 +114,9 @@ def constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded):
 
     # Deleting items below minSup
     nullTable = generateNullTable(itemSetList)
-
+    
     headerTable = dict((item, sup) for item, sup in headerTable.items() if sup >= minSup or (isNullEntriesIncluded and getItemName(item) == "NULL") or (isNullEntriesIncluded and getCategoryNumber(item) in nullTable and nullTable[getCategoryNumber(item)] + sup >= minSup))
-
+    
     if(len(headerTable) == 0):
         return None, None
 
@@ -130,7 +134,8 @@ def constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded):
 
     # Update FP tree for each cleaned and sorted itemSet
     for idx, itemSet in enumerate(itemSetList):
-        itemSet = cleanAndSortItemSet(itemSet, headerTable, nullTable, isNullEntriesIncluded)
+        categoryCountTable = generateCategoryCountTable(headerTable)
+        itemSet = cleanAndSortItemSet(itemSet, headerTable, categoryCountTable, nullTable, isNullEntriesIncluded)
         # Traverse from root to leaf, update tree with given item
         currentNode = fpTree
         for item in itemSet:
