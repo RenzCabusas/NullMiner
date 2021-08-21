@@ -3,6 +3,7 @@ from fpgrowth_py.utils import *
 def fpgrowth(itemSetList, minSup, isNullEntriesIncluded):
     frequency = getFrequencyFromList(itemSetList)
     fpTree, headerTable = constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded)
+
     # fpTree.display()
     if(fpTree == None):
         print('No frequent item set')
@@ -17,8 +18,6 @@ def fpgrowth(itemSetList, minSup, isNullEntriesIncluded):
         actualFreqItems = []
         for item in freqItems:
             sup = getSupport(item, itemSetList)
-            if sup < minSup:
-                continue
             
             actualFreqItems.append(str(item) + " : " + str(sup))
             
