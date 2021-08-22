@@ -9,8 +9,8 @@ class Node:
         self.children = {}
         self.next = None
 
-    def increment(self, frequency):
-        self.count += frequency
+    def increment(self):
+        self.count += 1
     
     def printTree(self):
         print(self.numNodes())
@@ -30,78 +30,131 @@ class Node:
             count += child.numNodesHelper()
         return count
 
-def getFromFile(fname):
-    itemSetList = []
-    frequency = []
-    
-    with open(fname, 'r') as file:
-        csv_reader = reader(file)
-        for line in csv_reader:
-            line = list(filter(None, line))
-            itemSetList.append(line)
-            frequency.append(1)
+# Return the category value for the item. Item in format of "{category,item}""
+def getCategoryNumber(item):
+    return item.split(',')[0][1:]
 
-    return itemSetList, frequency
+# Return the name value for the item. Item in format of "{category,item}"
+def getItemName(item):
+    return item.split(',')[1][:-1]
+
+def getFrequencyFromList(itemSetList):
+    frequency = [1 for i in range(len(itemSetList))]
+    return frequency
 
 def generateNullTable(itemSetList):
     nullTable = defaultdict(int)
     for idx, itemSet in enumerate(itemSetList):
         for item in itemSet:
-            if item[3:-1] == 'NULL':
-                nullTable[item[1:2]] += 1
+            if getItemName(item) == 'NULL':
+                nullTable[getCategoryNumber(item)] += 1
     return nullTable
-        
-def constructTree(itemSetList, frequency, minSup):
-    headerTable = defaultdict(int)
-    nullTable = generateNullTable(itemSetList)
-    categorySetCounts = defaultdict(set)
 
-    # Counting frequency and create header table
+def addNullToItemName(item):
+    newItemName = getItemName(item) + " + NULL"
+    return "{" + str(getCategoryNumber(item)) + "," + str(newItemName) + "}"
+
+def removeNullFromItemName(item):
+    newItemName = getItemName(item).split(" +")[0]
+    return "{" + str(getCategoryNumber(item)) + "," + str(newItemName) + "}"
+
+def getNullEntryForCategory(category):
+    return "{" + category + ",NULL}"
+
+def generateTables(itemSetList, frequency, minSup, isNullEntriesIncluded):
+    headerTable = defaultdict(int)
+    
     for idx, itemSet in enumerate(itemSetList):
         for item in itemSet:
+            # get frequencies for each item in itemset
             headerTable[item] += frequency[idx]
-            categorySetCounts[item[1:2]].add(item)
+    
+    if isNullEntriesIncluded:
+        nullTable = generateNullTable(itemSetList)
+        nullEntriesToAdd = defaultdict(int)
+        
+        for item in headerTable:
+            categoryNumber = getCategoryNumber(item)
+            itemName = getItemName(item)
+            # skip null items
+            if itemName == "NULL":
+                continue
+            
+            if headerTable[item] + nullTable[categoryNumber] < minSup:
+                continue
+            
+        # merge nullEntries with headerTable
+        headerTable = headerTable | nullEntriesToAdd
+    return headerTable
+
+def generateCategoryCountTable(headerTable):
+    categoryCountTable = defaultdict(int)
+    for item in headerTable:
+        categoryCountTable[getCategoryNumber(item)] += headerTable[item][0]
+    
+    return categoryCountTable
+
+def cleanAndSortItemSet(itemSet, headerTable, categoryCountTable, nullTable, isNullEntriesIncluded):
+    newItemSet = []
+    
+    for item in itemSet:        
+        if item in headerTable:
+            newItemSet.append(item)
+
+    if isNullEntriesIncluded and getCategoryNumber(item) in nullTable:
+        newItemSet.sort(key=lambda item: (nullTable[getCategoryNumber(item)], -categoryCountTable[getCategoryNumber(item)]), reverse=False)
+    else:
+        newItemSet.sort(key=lambda item: headerTable[item][0], reverse=True)
+
+    return newItemSet
+    
+def constructTree(itemSetList, minSup, frequency, isNullEntriesIncluded):
+    # headerTable: {categoryNumber, itemName}: frequency
+    headerTable = generateTables(itemSetList, frequency, minSup, isNullEntriesIncluded)
 
     # Deleting items below minSup
-    headerTable = dict((item, sup) for item, sup in headerTable.items() if item[3:-1] == 'NULL' or sup >= minSup or nullTable[item[1:2]] + sup >= minSup)
-
+    nullTable = generateNullTable(itemSetList)
+    
+    headerTable = dict((item, sup) for item, sup in headerTable.items() if sup >= minSup or (isNullEntriesIncluded and getItemName(item) == "NULL") or (isNullEntriesIncluded and getCategoryNumber(item) in nullTable and nullTable[getCategoryNumber(item)] + sup >= minSup))
+    
     if(len(headerTable) == 0):
         return None, None
 
-    # HeaderTable column [Item: [frequency, headNode, setCount]]
+    # headerTable: {categoryNumber, itemName}: [frequency, headNode, setCount]
     for item in headerTable:
-        headerTable[item] = [headerTable[item], None, len(categorySetCounts[item[1:2]])]
-
+        if not isNullEntriesIncluded:
+            headerTable[item] = [headerTable[item], None]
+        elif getCategoryNumber(item) in nullTable:
+            headerTable[item] = [headerTable[item], None, nullTable[getCategoryNumber(item)]]
+        else:
+            headerTable[item] = [headerTable[item], None, 0]
+            
     # Init Null head node
     fpTree = Node('Null', 1, None)
 
     # Update FP tree for each cleaned and sorted itemSet
     for idx, itemSet in enumerate(itemSetList):
-        itemSet = [item for item in itemSet if item in headerTable]
-        itemSet.sort(key=lambda item: headerTable[item][2], reverse=False)
-
+        categoryCountTable = generateCategoryCountTable(headerTable)
+        itemSet = cleanAndSortItemSet(itemSet, headerTable, categoryCountTable, nullTable, isNullEntriesIncluded)
         # Traverse from root to leaf, update tree with given item
         currentNode = fpTree
         for item in itemSet:
             currentNode = updateTree(item, currentNode, headerTable, frequency[idx])
-
+            
     return fpTree, headerTable
 
-def addNullNodes(headerTable, itemSetList):
-    nullTable = generateNullTable(itemSetList)
-    for item in headerTable:
-        categoryNumber = item[1:2]
-        itemName = item[3:-1]
-        if itemName == "NULL" or not nullTable[categoryNumber]:
-            continue
-        node = headerTable[item][1]
-        nullPair = "{" + categoryNumber + ",NULL}"
-        nullNode = headerTable[nullPair][1]
-        
-        while node.next != None:
-            node = node.next
-        node.next = nullNode
-        headerTable[item][0] += headerTable[nullPair][0]
+def updateTree(item, treeNode, headerTable, frequency):
+    if item in treeNode.children:
+        # If the item already exists, increment the count
+        treeNode.children[item].increment()
+    else:
+        # Create a new branch
+        newItemNode = Node(item, frequency, treeNode)
+        treeNode.children[item] = newItemNode
+        # Link the new branch to header table
+        updateHeaderTable(item, newItemNode, headerTable)
+     
+    return treeNode.children[item]
 
 def updateHeaderTable(item, targetNode, headerTable):
     if(headerTable[item][1] == None):
@@ -112,19 +165,6 @@ def updateHeaderTable(item, targetNode, headerTable):
         while currentNode.next != None:
             currentNode = currentNode.next
         currentNode.next = targetNode
-
-def updateTree(item, treeNode, headerTable, frequency):
-    if item in treeNode.children:
-        # If the item already exists, increment the count
-        treeNode.children[item].increment(frequency)
-    else:
-        # Create a new branch
-        newItemNode = Node(item, frequency, treeNode)
-        treeNode.children[item] = newItemNode
-        # Link the new branch to header table
-        updateHeaderTable(item, newItemNode, headerTable)
-        
-    return treeNode.children[item]
 
 def ascendFPtree(node, prefixPath):
     if node.parent != None:
@@ -144,103 +184,86 @@ def findPrefixPath(basePat, headerTable):
             # Storing the prefix path and it's corresponding count
             condPats.append(prefixPath[1:])
             frequency.append(treeNode.count)
-
         # Go to next node
-        treeNode = treeNode.next  
+        treeNode = treeNode.next 
     return condPats, frequency
 
-def mineTree(headerTable, minSup, preFix, freqItemList):
+def mineTree(headerTable, minSup, preFix, freqItemList, isNullEntriesIncluded):
     # Sort the items with frequency and create a list
-    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True)] 
+    if isNullEntriesIncluded:
+        sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:(p[1][2]), reverse=True)] 
+    else:
+        sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:(p[1][0]), reverse=True)] 
 
     # Start with the lowest frequency
     for item in sortedItemList:
-        if (headerTable[item][0] < minSup or item[3:-1] == "NULL"):
-            continue  
+        if headerTable[item][0] < minSup:
+            continue
         # Pattern growth is achieved by the concatenation of suffix pattern with frequent patterns generated from conditional FP-tree
         newFreqSet = preFix.copy()
         newFreqSet.add(item)
         freqItemList.append(newFreqSet)
+            
         # Find all prefix path, constrcut conditional pattern base
         conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
 
         # Construct conditonal FP Tree with conditional pattern base
-        conditionalTree, newHeaderTable = constructTree(conditionalPattBase, frequency, minSup) 
+        conditionalTree, newHeaderTable = constructTree(conditionalPattBase, minSup, frequency, isNullEntriesIncluded) 
+
         if newHeaderTable != None:
             # Mining recursively on the tree
             mineTree(newHeaderTable, minSup,
-                       newFreqSet, freqItemList)
-    
-def mineNullTree(headerTable, minSup, preFix, freqItemList, itemSetList):
-    nullTable = createNullTable(itemSetList)
-    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True)]
-    for item in sortedItemList:
-        categoryNumber = item[1:2]
-        itemName = item[3:-1]
-        if (not nullTable[categoryNumber] or itemName == "NULL"):
-            continue
-        newFreqSet = preFix.copy()
-        newFreqSet.add(item)
-        freqItemList.append(str(newFreqSet))
-        conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
-        nullItem = "{" + categoryNumber + ",NULL}"
-        nullConditionalPattBase, nullFrequency = findPrefixPath(nullItem, headerTable) 
-        mergedConditionalPattBase = conditionalPattBase + nullConditionalPattBase
-        mergedFrequency = frequency + nullFrequency
-        conditionalTree, newHeaderTable = constructTree(mergedConditionalPattBase, mergedFrequency, minSup) 
-
-def mineTreeHelper(headerTable, minSup, preFix, freqItemList, itemSetList):
-    # Sort the items with frequency and create a list
-    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True)] 
-    # Start with the lowest frequency
-    for item in sortedItemList:
-        if item[3:-1] == "NULL":
-            continue  
-        # Pattern growth is achieved by the concatenation of suffix pattern with frequent patterns generated from conditional FP-tree
-        newFreqSet = preFix.copy()
-        newFreqSet.add(item)
-        freqItemList.append(newFreqSet)
-        # Find all prefix path, constrcut conditional pattern base
-        conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
-        # Construct conditonal FP Tree with conditional pattern base
-        conditionalTree, newHeaderTable = constructTree(conditionalPattBase, frequency, minSup) 
-        if newHeaderTable != None:
-            # Mining recursively on the tree
-            mineTreeHelper(newHeaderTable, minSup,
-                       newFreqSet, freqItemList, itemSetList)
+                       newFreqSet, freqItemList, isNullEntriesIncluded)
             
-def mineNullTree(headerTable, minSup, preFix, freqItemList, itemSetList):
-    nullTable = generateNullTable(itemSetList)
-    # Sort the items with frequency and create a list
-    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True)] 
+def mineTreeWithNull(headerTable, minSup, preFix, freqItemList, isNullEntriesIncluded):
+    sortedItemList = [item[0] for item in sorted(list(headerTable.items()), key=lambda p:p[1][2], reverse=True) if getItemName(item[0]) != "NULL" and headerTable[item[0]][2] > 0]
 
-    # Start with the lowest frequency
     for item in sortedItemList:
-        if not nullTable[item[1:2]] or item[3:-1] == "NULL":
-            continue  
+        item = addNullToItemName(item)
         
         # Pattern growth is achieved by the concatenation of suffix pattern with frequent patterns generated from conditional FP-tree
         newFreqSet = preFix.copy()
         newFreqSet.add(item)
-        freqItemList.append(str(newFreqSet))
-        # Find all prefix path, constrcut conditional pattern base
-        conditionalPattBase, frequency = findPrefixPath(item, headerTable) 
-        conditionalTree, newHeaderTable = constructTree(conditionalPattBase, frequency, minSup)
-        addNullNodes(newHeaderTable, itemSetList)
-        if newHeaderTable != None:
-            # Mining recursively on the tree
-            mineTreeHelper(newHeaderTable, minSup,
-                       newFreqSet, freqItemList, itemSetList)
-    
+        freqItemList.append(newFreqSet)
 
+        # Find all prefix path, constrcut conditional pattern base
+        conditionalPattBase, frequency = findPrefixPath(removeNullFromItemName(item), headerTable) 
+        
+        # get conditional path for its null entry
+        nullEntry = getNullEntryForCategory(getCategoryNumber(item))
+        conditionalPattBaseWithNull, frequencyWithNull = findPrefixPath(nullEntry, headerTable) 
+        
+        # merge conditional pattern base and frequencies
+        mergedConditionalPattBase = conditionalPattBase + conditionalPattBaseWithNull
+        mergedFrequencies = frequency + frequencyWithNull
+
+        # Construct conditonal FP Tree with conditional pattern base
+        conditionalTree, newHeaderTable = constructTree(mergedConditionalPattBase, minSup, mergedFrequencies, isNullEntriesIncluded) 
+
+        if newHeaderTable != None:
+            mineTreeWithNull(newHeaderTable, minSup,
+                       newFreqSet, freqItemList, isNullEntriesIncluded)
+            # Mining recursively on the tree
+            mineTree(newHeaderTable, minSup,
+                       newFreqSet, freqItemList, isNullEntriesIncluded)
+                
 def getSupport(testSet, itemSetList):
     count = 0
+
     for itemSet in itemSetList:
-        if(set(testSet).issubset(itemSet)):
+        newTestSet = set()
+        newTestSetReplacedWithNull = set()
+        for item in testSet:
+            if "NULL" in getItemName(item):
+                newTestSet.add(removeNullFromItemName(item))
+                
+                # count null item
+                nullItemSet = "{" + getCategoryNumber(item) + ",NULL}"
+                newTestSetReplacedWithNull.add(nullItemSet)
+            else:
+                newTestSet.add(item)
+                newTestSetReplacedWithNull.add(item)
+
+        if(newTestSet.issubset(itemSet) or newTestSetReplacedWithNull.issubset(itemSet)):
             count += 1
     return count
-
-
-def getFrequencyFromList(itemSetList):
-    frequency = [1 for i in range(len(itemSetList))]
-    return frequency
